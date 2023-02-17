@@ -11,22 +11,32 @@ void setup()
 
 void loop()
 {
-  int data = 0b00000001;
-  int data2 = 0b00001011;
+  int data = 0b11010;
+  int data2 = 0b11001;
 
-  for (int i = 0; i < 8; i++) {
-    int bit = (data >> i) & 1;
-
-    if (bit == 1) {
+  for (int i = 0; i < 10; i++) {
       digitalWrite(laser, HIGH);
-      delay(10);
+      delay(100);
+      digitalWrite(laser, LOW);      
+      delay(100);
+    }
+
+  Serial.println("Debut");
+  for (int i = 4; i >= 0; i--) {
+    int bit = (data2 >> i) & 1;
+    Serial.println(bit);
+
+    if (bit == 0) {
       digitalWrite(laser, LOW);
-      delay(10);
+      delay(20);
     } else {
-      digitalWrite(laser, LOW);
-      delay(1000);
+      digitalWrite(laser, HIGH);
+      delay(20);
     }
   }
+  Serial.println("Fin");
+  digitalWrite(laser, LOW);
+  delay(5000);
 }
 
 void sendDataUsingLaser()
