@@ -22,16 +22,18 @@ void loop()
     }
 
   Serial.println("Debut");
+
+  //la trame doit durée 200ms
   for (int i = 4; i >= 0; i--) {
     int bit = (data2 >> i) & 1;
     Serial.println(bit);
 
     if (bit == 0) {
       digitalWrite(laser, LOW);
-      delay(20);
+      delay(40);
     } else {
       digitalWrite(laser, HIGH);
-      delay(20);
+      delay(40);
     }
   }
   Serial.println("Fin");
