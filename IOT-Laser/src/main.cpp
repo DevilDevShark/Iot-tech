@@ -11,21 +11,18 @@ void setup()
 
 void loop()
 {
-  int data = 0b01010101;
+  int data = 0b00000001;
+  int data2 = 0b00001011;
 
-  for (int i = 0; i < 8; i++)
-  {
+  for (int i = 0; i < 8; i++) {
     int bit = (data >> i) & 1;
 
-    if (bit == 1)
-    {
+    if (bit == 1) {
       digitalWrite(laser, HIGH);
       delay(10);
       digitalWrite(laser, LOW);
       delay(10);
-    }
-    else
-    {
+    } else {
       digitalWrite(laser, LOW);
       delay(1000);
     }
