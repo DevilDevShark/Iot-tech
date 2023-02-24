@@ -12,8 +12,9 @@ int i = 0;
 const String strState[] = {
     "DEFAULT",
     "START",
-    "BITO",
-    "BITZ",
+    "BIT_1",
+    "BIT_2",
+    "BIT_3",
     "DATA",
     "DATAR",
 };
@@ -27,10 +28,11 @@ enum State
 {
   DEFAULT,
   START,
-  BITO,
-  BITZ,
+  BIT_1,
+  BIT_2,
+  BIT_3,
   DATA,
-  DATAR,
+  DATA_R,
 };
 
 class Timer
@@ -104,15 +106,16 @@ void RunFsm()
 {
   fsm.checkState(DEFAULT, START, timer1._elapsed() > 2000);
   fsm.checkState(DEFAULT, START, true, &timer1);
-  // fsm.checkState(START, BITO, sensorState == 1, &timer1);
-  // fsm.checkState(BITO, BITZ, sensorState == 1, &timer1);
-  // fsm.checkState(BITZ, DATA, &timer1);
-  // fsm.checkState(DATA, DATAR, DATAR == !DATA ? true : false);
+  fsm.checkState(START, BIT_1, sensorState == 1, &timer1);
+  fsm.checkState(BIT_1, BIT_2, sensorState == 1, &timer1);
+  fsm.checkState(BIT_2, BIT_3, sensorState == 0, &timer1);
+  fsm.checkState(BIT_3, DATA, true, &timer1);
+  fsm.checkState(DATA, DATA_R, DATA_R == !DATA ? true : false, &timer1);
 }
 
-int ReadInput()
+int ReadInput(int mediane)
 {
-  if (digitalRead(ledSensor) > DEFAULT_VALUE)
+  if (analogRead(ledSensor) >= mediane*1.5 || analogRead(ledSensor) >= 4095)
   {
     return 1;
   }
@@ -125,6 +128,7 @@ int ReadInput()
 set<int> arr;
 int n;
 auto it = arr.begin();
+int mediane;
 
 void setup()
 {
@@ -135,7 +139,6 @@ void setup()
 
 void loop()
 {
-  sensorState = ReadInput();
   RunFsm();
 
   switch (fsm.getCurrentState())
@@ -172,15 +175,19 @@ void loop()
       it++;
     }
 
+    mediane = it;
     cout << "Élément à index " << *it;
     break;
-  case BITO:
+  case BIT_1:
+    sensorState = ReadInput(mediane);
     break;
-  case BITZ:
+  case BIT_2:
+    break;
+  case BIT_3:
     break;
   case DATA:
     break;
-  case DATAR:
+  case DATA_R:
     Serial.println("message reçu");
     break;
   };
