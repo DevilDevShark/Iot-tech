@@ -1,6 +1,5 @@
 #include <HardwareSerial.h>
 #include <bits/stdc++.h>
-#include <vector>
 #include <set>
 using namespace std;
 
@@ -17,6 +16,7 @@ const String strState[] = {
     "BIT_3",
     "DATA",
     "DATAR",
+    "FIN",
 };
 
 String stateToString(int state)
@@ -33,6 +33,7 @@ enum State
   BIT_3,
   DATA,
   DATA_R,
+  FIN,
 };
 
 class Timer
@@ -101,21 +102,24 @@ Timer timer1;
 int sensorState = 0;
 int incrnumber = 0;
 bool isIncr = true;
+set<int> arr;
+std::set<int>::iterator it;
+int median;
 
 void RunFsm()
 {
   fsm.checkState(DEFAULT, START, timer1._elapsed() > 2000);
-  fsm.checkState(DEFAULT, START, true, &timer1);
-  fsm.checkState(START, BIT_1, sensorState == 1, &timer1);
+  fsm.checkState(START, BIT_1, median != 0, &timer1);
   fsm.checkState(BIT_1, BIT_2, sensorState == 1, &timer1);
-  fsm.checkState(BIT_2, BIT_3, sensorState == 0, &timer1);
-  fsm.checkState(BIT_3, DATA, true, &timer1);
-  fsm.checkState(DATA, DATA_R, DATA_R == !DATA ? true : false, &timer1);
+  fsm.checkState(BIT_2, BIT_3, sensorState == 1, &timer1);
+  fsm.checkState(BIT_3, DATA, sensorState == 0, &timer1);
+  fsm.checkState(DATA, DATA_R, true, &timer1);
+  fsm.checkState(DATA_R, FIN, DATA_R == !DATA ? true : false, &timer1);
 }
 
-int ReadInput(int mediane)
+int ReadInput(int median)
 {
-  if (analogRead(ledSensor) >= mediane*1.5 || analogRead(ledSensor) >= 4095)
+  if (analogRead(ledSensor) >= median*1.5 || analogRead(ledSensor) >= 4095)
   {
     return 1;
   }
@@ -125,10 +129,14 @@ int ReadInput(int mediane)
   }
 }
 
-set<int> arr;
-int n;
-auto it = arr.begin();
-int mediane;
+String typeLaser(int data)
+{
+  if (data = 1) {
+    return "terrestre";
+  } else {
+    return "aerien";
+  }
+}
 
 void setup()
 {
@@ -148,7 +156,7 @@ void loop()
     {
       arr.emplace(analogRead(ledSensor));
 
-      if (arr.size() == 16)
+      if (arr.size() > 16)
       {
         for (int i : arr)
         {
@@ -161,33 +169,27 @@ void loop()
 
     break;
   case START:
-    if (arr.size() % 2 == 1)
-    {
-      n = (arr.size() / 2) - 1;
-    }
-    else if (arr.size() % 2 == 0)
-    {
-      n = arr.size() / 2;
-    }
-
-    for (int i = 0; i < n; i++)
-    {
-      it++;
-    }
-
-    mediane = it;
-    cout << "Élément à index " << *it;
+    it = arr.begin();
+    std::advance(it, arr.size() / 2);
+    cout << "mediane" << *it;
+    median = *it;
+    
     break;
   case BIT_1:
-    sensorState = ReadInput(mediane);
+    sensorState = ReadInput(median);
     break;
   case BIT_2:
+    sensorState = ReadInput(median);
     break;
   case BIT_3:
+    sensorState = ReadInput(median);
     break;
   case DATA:
+    sensorState = ReadInput(median);
+    Serial.println(sensorState);
     break;
   case DATA_R:
+    sensorState = ReadInput(median);
     Serial.println("message reçu");
     break;
   };
