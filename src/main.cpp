@@ -104,7 +104,8 @@ int incrnumber = 0;
 bool isIncr = true;
 set<int> arr;
 std::set<int>::iterator it;
-int median;
+int median = 0;
+bool data;
 
 void RunFsm()
 {
@@ -114,11 +115,12 @@ void RunFsm()
   fsm.checkState(BIT_2, BIT_3, sensorState == 1, &timer1);
   fsm.checkState(BIT_3, DATA, sensorState == 0, &timer1);
   fsm.checkState(DATA, DATA_R, true, &timer1);
-  fsm.checkState(DATA_R, FIN, DATA_R == !DATA ? true : false, &timer1);
+  fsm.checkState(DATA_R, FIN, data != sensorState ? true : false, &timer1);
 }
 
 int ReadInput(int median)
 {
+  // Compare la lumière ambiante avec la médiane. Une marge de 50%
   if (analogRead(ledSensor) >= median*1.5 || analogRead(ledSensor) >= 4095)
   {
     return 1;
@@ -129,12 +131,12 @@ int ReadInput(int median)
   }
 }
 
-String typeLaser(int data)
+void typeLaser(int sensorLed)
 {
-  if (data = 1) {
-    return "terrestre";
+  if (sensorLed == 1) {
+    data = 1;
   } else {
-    return "aerien";
+    data = 0;
   }
 }
 
@@ -152,8 +154,10 @@ void loop()
   switch (fsm.getCurrentState())
   {
   case DEFAULT:
+    // Récolté tant que la taille du tableau est inférieur à 17
     while (arr.size() < 17)
     {
+      // Enregistre les données dans un tableau ordonné 
       arr.emplace(analogRead(ledSensor));
 
       if (arr.size() > 16)
@@ -169,6 +173,7 @@ void loop()
 
     break;
   case START:
+    // Connaitre la médiane des données récoltées précedement 
     it = arr.begin();
     std::advance(it, arr.size() / 2);
     cout << "mediane" << *it;
@@ -176,6 +181,7 @@ void loop()
     
     break;
   case BIT_1:
+    // Détecte si y'a un laser
     sensorState = ReadInput(median);
     break;
   case BIT_2:
@@ -186,11 +192,13 @@ void loop()
     break;
   case DATA:
     sensorState = ReadInput(median);
-    Serial.println(sensorState);
+    typeLaser(sensorState);
     break;
   case DATA_R:
     sensorState = ReadInput(median);
-    Serial.println("message reçu");
+    break;
+  case FIN:
+    Serial.println("Message reçu :  laser " + data ? "terrestre" : "aérien")
     break;
   };
 }
