@@ -86,6 +86,13 @@ void FSM::checkState(State source, State target, bool condition, Timer *timer)
       timer->start();
     }
     mCurrentState = target;
+  } else {
+    // Serial.println(stateToString(source) + " -> " + stateToString(BIT_1) + ":" + condition);
+    if (timer != nullptr)
+    {
+      timer->start();
+    }
+    mCurrentState = BIT_1;
   }
 }
 
@@ -116,7 +123,7 @@ void RunFsm()
 int readInput(int median)
 {
   // Compare la lumière ambiante avec la médiane. Une marge de 50%
-  if (analogRead(ledSensor) >= median * 1.5 || analogRead(ledSensor) >= 4095)
+  if (analogRead(ledSensor) >= median * 1.4 || analogRead(ledSensor) >= 4095)
   {
     return 1;
   }
@@ -182,22 +189,32 @@ void loop()
   case BIT_1:
     // Détecte si y'a un laser
     sensorState = readInput(median);
+    Serial.println(sensorState);
+    delay(25);
     break;
   case BIT_2:
     sensorState = readInput(median);
+    Serial.println(sensorState);
+    delay(25);
     break;
   case BIT_3:
     sensorState = readInput(median);
+    Serial.println(sensorState);
+    delay(20);
     break;
   case DATA:
     sensorState = readInput(median);
+    Serial.println(sensorState);
     typeLaser(sensorState);
+    delay(20);
     break;
   case DATA_R:
     sensorState = readInput(median);
+    Serial.println(sensorState);
+    delay(20);
+    Serial.println("Message reçu :  laser " + data ? "terrestre" : "aérien");
     break;
   case END:
-    Serial.println("Message reçu :  laser " + data ? "terrestre" : "aérien");
     break;
   };
 }
