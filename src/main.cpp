@@ -4,9 +4,6 @@
 using namespace std;
 
 int ledSensor = 2;
-int DEFAULT_VALUE;
-int lightSensor = 0;
-int i = 0;
 
 const String strState[] = {
     "DEFAULT",
@@ -16,7 +13,7 @@ const String strState[] = {
     "BIT_3",
     "DATA",
     "DATAR",
-    "FIN",
+    "END",
 };
 
 String stateToString(int state)
@@ -33,7 +30,7 @@ enum State
   BIT_3,
   DATA,
   DATA_R,
-  FIN,
+  END,
 };
 
 class Timer
@@ -100,10 +97,8 @@ State FSM::getCurrentState()
 FSM fsm;
 Timer timer1;
 int sensorState = 0;
-int incrnumber = 0;
-bool isIncr = true;
-set<int> arr;
-std::set<int>::iterator it;
+set<int> valuesArray;
+std::set<int>::iterator arrayIterator;
 int median = 0;
 bool data;
 
@@ -115,13 +110,13 @@ void RunFsm()
   fsm.checkState(BIT_2, BIT_3, sensorState == 1, &timer1);
   fsm.checkState(BIT_3, DATA, sensorState == 0, &timer1);
   fsm.checkState(DATA, DATA_R, true, &timer1);
-  fsm.checkState(DATA_R, FIN, data != sensorState ? true : false, &timer1);
+  fsm.checkState(DATA_R, END, data != sensorState ? true : false, &timer1);
 }
 
-int ReadInput(int median)
+int readInput(int median)
 {
   // Compare la lumière ambiante avec la médiane. Une marge de 50%
-  if (analogRead(ledSensor) >= median*1.5 || analogRead(ledSensor) >= 4095)
+  if (analogRead(ledSensor) >= median * 1.5 || analogRead(ledSensor) >= 4095)
   {
     return 1;
   }
@@ -133,9 +128,12 @@ int ReadInput(int median)
 
 void typeLaser(int sensorLed)
 {
-  if (sensorLed == 1) {
+  if (sensorLed == 1)
+  {
     data = 1;
-  } else {
+  }
+  else
+  {
     data = 0;
   }
 }
@@ -155,50 +153,51 @@ void loop()
   {
   case DEFAULT:
     // Récolté tant que la taille du tableau est inférieur à 17
-    while (arr.size() < 17)
+    while (valuesArray.size() < 17)
     {
-      // Enregistre les données dans un tableau ordonné 
-      arr.emplace(analogRead(ledSensor));
+      // Enregistre les données dans un tableau ordonné
+      valuesArray.emplace(analogRead(ledSensor));
 
-      if (arr.size() > 16)
+      // Chelou comme condition 🤔
+      if (valuesArray.size() > 16)
       {
-        for (int i : arr)
+        for (int i : valuesArray)
         {
           cout << i << ' ';
         }
 
-        cout << "SIZE " << arr.size() << " ";
+        cout << "SIZE " << valuesArray.size() << " ";
       }
     }
 
     break;
   case START:
-    // Connaitre la médiane des données récoltées précedement 
-    it = arr.begin();
-    std::advance(it, arr.size() / 2);
-    cout << "mediane" << *it;
-    median = *it;
-    
+    // Connaitre la médiane des données récoltées précedement
+    arrayIterator = valuesArray.begin();
+    std::advance(arrayIterator, valuesArray.size() / 2);
+    cout << "mediane" << *arrayIterator;
+    median = *arrayIterator;
+
     break;
   case BIT_1:
     // Détecte si y'a un laser
-    sensorState = ReadInput(median);
+    sensorState = readInput(median);
     break;
   case BIT_2:
-    sensorState = ReadInput(median);
+    sensorState = readInput(median);
     break;
   case BIT_3:
-    sensorState = ReadInput(median);
+    sensorState = readInput(median);
     break;
   case DATA:
-    sensorState = ReadInput(median);
+    sensorState = readInput(median);
     typeLaser(sensorState);
     break;
   case DATA_R:
-    sensorState = ReadInput(median);
+    sensorState = readInput(median);
     break;
-  case FIN:
-    Serial.println("Message reçu :  laser " + data ? "terrestre" : "aérien")
+  case END:
+    Serial.println("Message reçu :  laser " + data ? "terrestre" : "aérien");
     break;
   };
 }
