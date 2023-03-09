@@ -7,12 +7,13 @@ int ledSensor = 2;
 
 const String strState[] = {
     "DEFAULT",
+    "PREPARE",
     "START",
     "BIT_1",
     "BIT_2",
     "BIT_3",
     "DATA",
-    "DATAR",
+    "DATA_R",
     "END",
 };
 
@@ -24,6 +25,7 @@ String stateToString(int state)
 enum State
 {
   DEFAULT,
+  PREPARE,
   START,
   BIT_1,
   BIT_2,
@@ -86,14 +88,7 @@ void FSM::checkState(State source, State target, bool condition, Timer *timer)
       timer->start();
     }
     mCurrentState = target;
-  } else {
-    // Serial.println(stateToString(source) + " -> " + stateToString(BIT_1) + ":" + condition);
-    if (timer != nullptr)
-    {
-      timer->start();
-    }
-    mCurrentState = BIT_1;
-  }
+  } 
 }
 
 State FSM::getCurrentState()
@@ -111,25 +106,30 @@ bool data;
 
 void RunFsm()
 {
-  fsm.checkState(DEFAULT, START, timer1._elapsed() > 2000);
+  fsm.checkState(DEFAULT, PREPARE, true, &timer1);
+  fsm.checkState(PREPARE,START,timer1._elapsed() > 2000);
   fsm.checkState(START, BIT_1, median != 0, &timer1);
-  fsm.checkState(BIT_1, BIT_2, sensorState == 1, &timer1);
-  fsm.checkState(BIT_2, BIT_3, sensorState == 1, &timer1);
-  fsm.checkState(BIT_3, DATA, sensorState == 0, &timer1);
-  fsm.checkState(DATA, DATA_R, true, &timer1);
-  fsm.checkState(DATA_R, END, data != sensorState ? true : false, &timer1);
+  fsm.checkState(BIT_1, BIT_2, sensorState == 1 && timer1._elapsed()> 10, &timer1);
+  fsm.checkState(BIT_2, BIT_1, sensorState == 0, &timer1);
+  fsm.checkState(BIT_2, BIT_3, sensorState == 1 && timer1._elapsed()> 10, &timer1);
+  fsm.checkState(BIT_3, DATA, sensorState == 0 && timer1._elapsed()> 10, &timer1);
+  fsm.checkState(BIT_3, BIT_1, sensorState == 1 && timer1._elapsed()> 40, &timer1);
+  fsm.checkState(DATA_R, END, data != sensorState && timer1._elapsed()>20, &timer1);
+  fsm.checkState(DATA_R, BIT_1, data == sensorState, &timer1);
+  fsm.checkState(END, PREPARE,timer1._elapsed() > 2000);
+  fsm.checkState(DATA, DATA_R, timer1._elapsed()>20, &timer1);
 }
 
-int readInput(int median)
+void readInput(int median)
 {
   // Compare la lumière ambiante avec la médiane. Une marge de 50%
   if (analogRead(ledSensor) >= median * 1.4 || analogRead(ledSensor) >= 4095)
   {
-    return 1;
+    sensorState = 1;
   }
   else
   {
-    return 0;
+    sensorState = 0;
   }
 }
 
@@ -159,24 +159,26 @@ void loop()
   switch (fsm.getCurrentState())
   {
   case DEFAULT:
-    // Récolté tant que la taille du tableau est inférieur à 17
+
+    break;
+  case PREPARE:
+        // Récolté tant que la taille du tableau est inférieur à 17
     while (valuesArray.size() < 17)
     {
       // Enregistre les données dans un tableau ordonné
       valuesArray.emplace(analogRead(ledSensor));
 
       // Chelou comme condition 🤔
-      if (valuesArray.size() > 16)
-      {
-        for (int i : valuesArray)
-        {
-          cout << i << ' ';
-        }
+      // if (valuesArray.size() > 16)
+      // {
+      //   for (int i : valuesArray)
+      //   {
+      //     cout << i << ' ';
+      //   }
 
-        cout << "SIZE " << valuesArray.size() << " ";
-      }
+      //   cout << "SIZE " << valuesArray.size() << " ";
+      // }
     }
-
     break;
   case START:
     // Connaitre la médiane des données récoltées précedement
@@ -184,37 +186,27 @@ void loop()
     std::advance(arrayIterator, valuesArray.size() / 2);
     cout << "mediane" << *arrayIterator;
     median = *arrayIterator;
-
+    Serial.println(median);
     break;
   case BIT_1:
     // Détecte si y'a un laser
-    sensorState = readInput(median);
-    Serial.println(sensorState);
-    delay(25);
+    readInput(median);
     break;
   case BIT_2:
-    sensorState = readInput(median);
-    Serial.println(sensorState);
-    delay(25);
+    readInput(median);
     break;
   case BIT_3:
-    sensorState = readInput(median);
-    Serial.println(sensorState);
-    delay(20);
+    readInput(median);
     break;
   case DATA:
-    sensorState = readInput(median);
-    Serial.println(sensorState);
-    typeLaser(sensorState);
-    delay(20);
+    readInput(median);
+    data = sensorState;
     break;
   case DATA_R:
-    sensorState = readInput(median);
-    Serial.println(sensorState);
-    delay(20);
-    Serial.println("Message reçu :  laser " + data ? "terrestre" : "aérien");
+    readInput(median);
     break;
   case END:
+    Serial.println("Message reçu :  laser " + data ? "terrestre" : "aérien");
     break;
   };
 }
